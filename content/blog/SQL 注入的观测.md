@@ -5,7 +5,6 @@ tags= ["post"]
 draft= false
 +++
 
-# SQL 注入的观测
 
 ### 拉取镜像并启动 sqli-lab 容器
 

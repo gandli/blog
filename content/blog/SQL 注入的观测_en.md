@@ -5,7 +5,6 @@ tags= ["post"]
 draft= false
 +++
 
-# Observation of SQL Injection
 
 ### Pulling the Image and Starting the sqli-lab Container
 
