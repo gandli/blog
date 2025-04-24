@@ -11,7 +11,7 @@ draft= false
 
 First, pull and start the `sqli-lab` container using Docker:
 
-```shell
+```
 docker run -dt --name sqli-lab -p 80:80 acgpiano/sqli-labs:latest
 ```
 
@@ -21,7 +21,7 @@ Once started, you should be able to access `http://localhost`.
 
 Visit `http://localhost/sql-connections/setup-db.php` to install the SQL injection lab database.
 
-![Installing Database](../assets/image-20250423224246712.png)
+![Installing Database](./../assets/image-20250423224246712.png)
 
 ### Accessing the Injection Lab Page
 
@@ -49,7 +49,7 @@ At this point, the page will execute an SQL query and display the corresponding 
 
 To further observe logs and database queries, enter the `sqli-lab` container:
 
-```shell
+```
 docker exec -it sqli-lab bash
 ```
 
@@ -57,7 +57,7 @@ docker exec -it sqli-lab bash
 
 Inside the container, use the following command to view Apache's access logs:
 
-```shell
+```
 tail -f /var/log/apache2/access.log
 ```
 
@@ -65,13 +65,13 @@ tail -f /var/log/apache2/access.log
 
 Next, we will enter MySQL and enable the general query log to observe the executed SQL queries. First, access MySQL:
 
-```shell
+```
 mysql -u root
 ```
 
 Then, execute the following commands to enable logging:
 
-```mysql
+```
 mysql> SET global general_log = 1;
 mysql> SET global log_output = 'FILE';
 mysql> SET global general_log_file = '/var/lib/mysql/general.log';
@@ -86,7 +86,7 @@ These commands will enable the general query log and output it to the file `/var
 
 Execute the following command to view MySQL's query logs:
 
-```shell
+```
 tail -f /var/lib/mysql/general.log
 ```
 
@@ -94,7 +94,7 @@ tail -f /var/lib/mysql/general.log
 
 Finally, use the `sqlmap` tool to perform SQL injection testing and retrieve data from the database. Execute the following command:
 
-```shell
+```
 sqlmap -u http://localhost/Less-1?id=1 --dump --batch
 ```
 
