@@ -86,7 +86,7 @@ jobs:
           done
           
           # 将文件列表转换为JSON格式输出
-          echo "files_to_translate=$(printf '%s\n' "${untranslated_files[@]}" | jq -R . | jq -s .)" >> $GITHUB_OUTPUT
+          echo "files_to_translate=$(find content -name "*.md" ! -name "*_en.md" -printf '"%p"\n' | jq -s .)" >> $GITHUB_OUTPUT
 
       - name: Translate Markdown files
         if: steps.untranslated-files.outputs.files_to_translate != '[]'
