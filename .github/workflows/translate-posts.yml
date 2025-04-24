@@ -3,95 +3,114 @@ name: Translate Markdown Posts
 on:
   push:
     paths:
-      - 'content/**/*.md'
-      - '!content/**/*_en.md'
+      - '**/*.md'             # 监控所有目录下的 .md 文件
+      - '!**/_*.md'           # 排除所有以 _ 开头的文件（如 _draft.md）
+      - '!**/*_en.md'         # 排除所有已存在的翻译文件（*_en.md）
   workflow_dispatch:
     inputs:
       file_path:
-        description: 'Optional - Specific file to translate (e.g. content/post.md)'
+        description: '可选 - 指定要翻译的文件路径（如 docs/示例.md）'
         required: false
         default: ''
 
 jobs:
   prepare:
+    name: "扫描待翻译文件"
     runs-on: ubuntu-latest
     outputs:
-      files_to_translate: ${{ steps.detect.outputs.files }}
-      has_files: ${{ steps.detect.outputs.has_files }}
+      files_to_translate: ${{ steps.detect.outputs.files }}  # 输出待翻译文件列表
+      has_files: ${{ steps.detect.outputs.has_files }}       # 是否有文件需要翻译
     steps:
-      - name: Checkout repository
+      - name: "检出代码库"
         uses: actions/checkout@v4
 
-      - name: Detect untranslated files
+      - name: "检测未翻译文件"
         id: detect
         run: |
+          # 如果是手动触发且指定了文件路径
           input_file="${{ github.event.inputs.file_path }}"
           result=()
 
           if [[ -n "$input_file" ]]; then
-            if [[ -f "$input_file" && ! "$input_file" =~ _en\.md$ ]]; then
+            # 检查：文件存在 且 不是_前缀 且 不是翻译文件
+            if [[ -f "$input_file" && ! "$input_file" =~ /_ && ! "$input_file" =~ _en\.md$ ]]; then
               base="${input_file%.*}"
+              # 检查对应的翻译文件是否已存在
               if [[ ! -f "${base}_en.md" ]]; then
                 result+=("$input_file")
               fi
             fi
           else
+            # 自动扫描全仓库
             while IFS= read -r -d '' file; do
+              # 跳过以 _ 开头的文件名
+              if [[ "$(basename "$file")" =~ ^_ ]]; then
+                continue
+              fi
               base="${file%.*}"
+              # 检查对应的翻译文件是否已存在
               if [[ ! -f "${base}_en.md" ]]; then
                 result+=("$file")
               fi
-            done < <(find content -name "*.md" ! -name "*_en.md" -print0)
+            done < <(find . -name "*.md" ! -name "_*.md" ! -name "*_en.md" -print0)
           fi
 
+          # 设置输出参数
           if [[ ${#result[@]} -gt 0 ]]; then
+            echo "检测到 ${#result[@]} 个待翻译文件"
             echo "files=$(jq -cn --argjson arr "$(printf '%s\n' "${result[@]}" | jq -R . | jq -s .)" '$arr')" >> "$GITHUB_OUTPUT"
             echo "has_files=true" >> "$GITHUB_OUTPUT"
           else
+            echo "⚠️ 没有需要翻译的文件"
             echo "files=[]" >> "$GITHUB_OUTPUT"
             echo "has_files=false" >> "$GITHUB_OUTPUT"
           fi
 
   translate:
+    name: "执行翻译"
     needs: prepare
-    if: needs.prepare.outputs.has_files == 'true'
+    if: needs.prepare.outputs.has_files == 'true'  # 只有有待翻译文件时才运行
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: "检出代码库"
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: "设置 Python 环境"
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: "安装依赖"
         run: |
           python -m pip install --upgrade pip
           pip install openai python-dotenv
+          echo "✔️ 依赖安装完成"
 
-      - name: Translate Markdown files
+      - name: "翻译 Markdown 文件"
         env:
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}  # 从仓库 Secrets 读取 API 密钥
         run: |
           readarray -t files < <(echo '${{ needs.prepare.outputs.files_to_translate }}' | jq -r '.[]')
+          echo "即将翻译 ${#files[@]} 个文件："
 
           for file in "${files[@]}"; do
-            echo "🔍 Translating $file"
+            echo "🔍 正在翻译 $file"
             python .github/scripts/translate_markdown.py "$file"
+            echo "✓ 翻译完成: ${file%.*}_en.md"
           done
 
-      - name: Commit and push translations
+      - name: "提交翻译结果"
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
-          git add content/**/*_en.md
+          # 添加所有新生成的 _en.md 文件
+          git add **/*_en.md
 
           if git diff --cached --quiet; then
-            echo "✅ No changes to commit"
+            echo "✅ 没有需要提交的更改"
           else
-            git commit -m "Auto-translate: Added English versions [skip ci]"
+            git commit -m "自动翻译: 新增英文版本 [skip ci]"
             git push origin "HEAD:${{ github.ref_name }}"
-            echo "🚀 Translations pushed"
+            echo "🚀 已推送翻译文件到分支 ${{ github.ref_name }}"
           fi
