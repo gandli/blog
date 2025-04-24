@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+  <meta http-equiv="X-Clacks-Overhead" content="GNU Terry Pratchett" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SQL 注入的观测 | My New Hugo Site</title>
+<meta name="title" content="SQL 注入的观测" />
+<meta name="description" content="搭建靶场
+拉取镜像并启动 sqli-lab 容器
+首先，通过 Docker 拉取并启动 sqli-lab 容器：
+docker run -dt --name sqli-lab -p 80:80 acgpiano/sqli-labs:latest
+启动完成后，你应该能够访问 http://localhost。
+安装数据库
+访问 http://localhost/sql-connections/setup-db.php 以安装 SQL 注入实验数据库。
+
+访问注入实验页面
+接着，访问以下 URL 进入 SQL 注入实验页面：
+http://localhost/Less-1/
+
+
+进行 SQL 查询
+尝试访问：
+http://localhost/Less-1/?id=1
+
+这时，页面会发起 SQL 查询，展示相应内容：
+
+设置服务器和数据库日志
+进入容器
+为了进一步观察日志和数据库查询，进入 sqli-lab 容器：
+docker exec -it sqli-lab bash
+查看 Apache 访问日志
+在容器内，使用以下命令查看 Apache 的访问日志：
+tail -f /var/log/apache2/access.log
+进入 MySQL 并开启日志功能
+接下来，我们将进入 MySQL，开启通用查询日志以观察执行的 SQL 查询。首先进入 MySQL：" />
+<meta name="keywords" content="post," />
+
+
+<meta property="og:url" content="http://localhost:1313/blog/sql-%E6%B3%A8%E5%85%A5%E7%9A%84%E8%A7%82%E6%B5%8B/">
+  <meta property="og:site_name" content="My New Hugo Site">
+  <meta property="og:title" content="SQL 注入的观测">
+  <meta property="og:description" content="搭建靶场 拉取镜像并启动 sqli-lab 容器 首先，通过 Docker 拉取并启动 sqli-lab 容器：
+docker run -dt --name sqli-lab -p 80:80 acgpiano/sqli-labs:latest 启动完成后，你应该能够访问 http://localhost。
+安装数据库 访问 http://localhost/sql-connections/setup-db.php 以安装 SQL 注入实验数据库。
+访问注入实验页面 接着，访问以下 URL 进入 SQL 注入实验页面：
+http://localhost/Less-1/ 进行 SQL 查询 尝试访问：
+http://localhost/Less-1/?id=1 这时，页面会发起 SQL 查询，展示相应内容：
+设置服务器和数据库日志 进入容器 为了进一步观察日志和数据库查询，进入 sqli-lab 容器：
+docker exec -it sqli-lab bash 查看 Apache 访问日志 在容器内，使用以下命令查看 Apache 的访问日志：
+tail -f /var/log/apache2/access.log 进入 MySQL 并开启日志功能 接下来，我们将进入 MySQL，开启通用查询日志以观察执行的 SQL 查询。首先进入 MySQL：">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="blog">
+    <meta property="article:published_time" content="2025-04-24T00:00:00+00:00">
+    <meta property="article:modified_time" content="2025-04-24T00:00:00+00:00">
+    <meta property="article:tag" content="Post">
+
+
+
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SQL 注入的观测">
+  <meta name="twitter:description" content="搭建靶场 拉取镜像并启动 sqli-lab 容器 首先，通过 Docker 拉取并启动 sqli-lab 容器：
+docker run -dt --name sqli-lab -p 80:80 acgpiano/sqli-labs:latest 启动完成后，你应该能够访问 http://localhost。
+安装数据库 访问 http://localhost/sql-connections/setup-db.php 以安装 SQL 注入实验数据库。
+访问注入实验页面 接着，访问以下 URL 进入 SQL 注入实验页面：
+http://localhost/Less-1/ 进行 SQL 查询 尝试访问：
+http://localhost/Less-1/?id=1 这时，页面会发起 SQL 查询，展示相应内容：
+设置服务器和数据库日志 进入容器 为了进一步观察日志和数据库查询，进入 sqli-lab 容器：
+docker exec -it sqli-lab bash 查看 Apache 访问日志 在容器内，使用以下命令查看 Apache 的访问日志：
+tail -f /var/log/apache2/access.log 进入 MySQL 并开启日志功能 接下来，我们将进入 MySQL，开启通用查询日志以观察执行的 SQL 查询。首先进入 MySQL：">
+
+
+
+
+  <meta itemprop="name" content="SQL 注入的观测">
+  <meta itemprop="description" content="搭建靶场 拉取镜像并启动 sqli-lab 容器 首先，通过 Docker 拉取并启动 sqli-lab 容器：
+docker run -dt --name sqli-lab -p 80:80 acgpiano/sqli-labs:latest 启动完成后，你应该能够访问 http://localhost。
+安装数据库 访问 http://localhost/sql-connections/setup-db.php 以安装 SQL 注入实验数据库。
+访问注入实验页面 接着，访问以下 URL 进入 SQL 注入实验页面：
+http://localhost/Less-1/ 进行 SQL 查询 尝试访问：
+http://localhost/Less-1/?id=1 这时，页面会发起 SQL 查询，展示相应内容：
+设置服务器和数据库日志 进入容器 为了进一步观察日志和数据库查询，进入 sqli-lab 容器：
+docker exec -it sqli-lab bash 查看 Apache 访问日志 在容器内，使用以下命令查看 Apache 的访问日志：
+tail -f /var/log/apache2/access.log 进入 MySQL 并开启日志功能 接下来，我们将进入 MySQL，开启通用查询日志以观察执行的 SQL 查询。首先进入 MySQL：">
+  <meta itemprop="datePublished" content="2025-04-24T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2025-04-24T00:00:00+00:00">
+  <meta itemprop="wordCount" content="141">
+  <meta itemprop="keywords" content="Post">
+<meta name="referrer" content="no-referrer-when-downgrade" />
+
+  <style>
+  :root {
+      --width: 720px;
+      --font-main: Verdana, sans-serif;
+      --font-secondary: Verdana, sans-serif;
+      --font-scale: 1em;
+      --background-color: #fff;
+      --heading-color: #222;
+      --text-color: #444;
+      --link-color: #3273dc;
+      --visited-color:  #8b6fcb;
+      --code-background-color: #f2f2f2;
+      --code-color: #222;
+      --blockquote-color: #222;
+  }
+
+  @media (prefers-color-scheme: dark) {
+      :root {
+          --background-color: #01242e;
+          --heading-color: #eee;
+          --text-color: #ddd;
+          --link-color: #8cc2dd;
+          --visited-color:  #8b6fcb;
+          --code-background-color: #000;
+          --code-color: #ddd;
+          --blockquote-color: #ccc;
+      }
+  }
+
+  body {
+      font-family: var(--font-secondary);
+      font-size: var(--font-scale);
+      margin: auto;
+      padding: 20px;
+      max-width: var(--width);
+      text-align: left;
+      background-color: var(--background-color);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.5;
+      color: var(--text-color);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+      font-family: var(--font-main);
+      color: var(--heading-color);
+  }
+
+  a {
+      color: var(--link-color);
+      cursor: pointer;
+      text-decoration: none;
+  }
+
+  a:hover {
+      text-decoration: underline;
+  }
+
+  nav a {
+      margin-right: 8px;
+  }
+
+  strong, b {
+      color: var(--heading-color);
+  }
+
+  button {
+      margin: 0;
+      cursor: pointer;
+  }
+
+  time {
+   	font-family: monospace;
+    	font-style: normal;
+    	font-size: 15px;
+  }
+
+  main {
+      line-height: 1.6;
+  }
+
+  table {
+      width: 100%;
+  }
+
+  hr {
+      border: 0;
+      border-top: 1px dashed;
+  }
+
+  img {
+      max-width: 100%;
+  }
+
+  code {
+      font-family: monospace;
+      padding: 2px;
+      background-color: var(--code-background-color);
+      color: var(--code-color);
+      border-radius: 3px;
+  }
+
+  blockquote {
+      border-left: 1px solid #999;
+      color: var(--code-color);
+      padding-left: 20px;
+      font-style: italic;
+  }
+
+  footer {
+      padding: 25px 0;
+      text-align: center;
+  }
+
+  .title:hover {
+      text-decoration: none;
+  }
+
+  .title h1 {
+      font-size: 1.5em;
+  }
+
+  .inline {
+      width: auto !important;
+  }
+
+  .highlight, .code {
+      padding: 1px 15px;
+      background-color: var(--code-background-color);
+      color: var(--code-color);
+      border-radius: 3px;
+      margin-block-start: 1em;
+      margin-block-end: 1em;
+      overflow-x: auto;
+  }
+
+   
+  ul.blog-posts {
+      list-style-type: none;
+      padding: unset;
+  }
+
+  ul.blog-posts li {
+      display: flex;
+  }
+
+  ul.blog-posts li span {
+      flex: 0 0 130px;
+  }
+
+  ul.blog-posts li a:visited {
+      color: var(--visited-color);
+  }
+</style>
+
+</head>
+
+<body>
+  <header><a href="/" class="title">
+  <h2>My New Hugo Site</h2>
+</a>
+<nav><a href="/">Home</a>
+
+<a href="/bear/">Bear</a>
+
+<a href="/hugo/">Hugo</a>
+
+
+<a href="/blog">Blog</a>
+
+</nav>
+</header>
+  <main>
+
+<h1>SQL 注入的观测</h1>
+<p>
+  <i>
+    <time datetime='2025-04-24'>
+      24 Apr, 2025
+    </time>
+  </i>
+</p>
+
+<content>
+  <h1 id="搭建靶场">搭建靶场</h1>
+<h2 id="拉取镜像并启动-sqli-lab-容器">拉取镜像并启动 sqli-lab 容器</h2>
+<p>首先，通过 Docker 拉取并启动 <code>sqli-lab</code> 容器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker run -dt --name sqli-lab -p 80:80 acgpiano/sqli-labs:latest
+</span></span></code></pre></div><p>启动完成后，你应该能够访问 <code>http://localhost</code>。</p>
+<h2 id="安装数据库">安装数据库</h2>
+<p>访问 <code>http://localhost/sql-connections/setup-db.php</code> 以安装 SQL 注入实验数据库。</p>
+<p><img src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/3be35d91bc7a4cee87b16c34df4f9bcc~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgRnJlZUN1bHR1cmVCb3k=:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMjY2NDg3MTkxMzM1NTQ2MyJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1746068975&amp;x-orig-sign=PyK4ULgVT2PnLT%2FaxfTE7Ph09BA%3D" alt="安装数据库"></p>
+<h2 id="访问注入实验页面">访问注入实验页面</h2>
+<p>接着，访问以下 URL 进入 SQL 注入实验页面：</p>
+<pre><code>http://localhost/Less-1/
+</code></pre>
+<p><img src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/2e7b9dc27ce343fc8a5c31d36823ba7a~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgRnJlZUN1bHR1cmVCb3k=:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMjY2NDg3MTkxMzM1NTQ2MyJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1746068975&amp;x-orig-sign=5e%2BZJ2%2FEdCXmY7RkskrnDJCtsDc%3D" alt="访问实验页面"></p>
+<h2 id="进行-sql-查询">进行 SQL 查询</h2>
+<p>尝试访问：</p>
+<pre><code>http://localhost/Less-1/?id=1
+</code></pre>
+<p>这时，页面会发起 SQL 查询，展示相应内容：</p>
+<p><img src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/958370066d8845839e12bcc6b8b9fe10~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgRnJlZUN1bHR1cmVCb3k=:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMjY2NDg3MTkxMzM1NTQ2MyJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1746068975&amp;x-orig-sign=E7hmBXSEv9sD%2BZbZAxN5IC%2B4jhI%3D" alt="SQL 查询页面"></p>
+<h1 id="设置服务器和数据库日志">设置服务器和数据库日志</h1>
+<h2 id="进入容器">进入容器</h2>
+<p>为了进一步观察日志和数据库查询，进入 <code>sqli-lab</code> 容器：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>docker exec -it sqli-lab bash
+</span></span></code></pre></div><h2 id="查看-apache-访问日志">查看 Apache 访问日志</h2>
+<p>在容器内，使用以下命令查看 Apache 的访问日志：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>tail -f /var/log/apache2/access.log
+</span></span></code></pre></div><h2 id="进入-mysql-并开启日志功能">进入 MySQL 并开启日志功能</h2>
+<p>接下来，我们将进入 MySQL，开启通用查询日志以观察执行的 SQL 查询。首先进入 MySQL：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>mysql -u root
+</span></span></code></pre></div><p>然后执行以下命令开启日志功能：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-mysql" data-lang="mysql"><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SET</span> global general_log <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+</span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SET</span> global log_output <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;FILE&#39;</span>;
+</span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SET</span> global general_log_file <span style="color:#f92672">=</span> <span style="color:#e6db74">&#39;/var/lib/mysql/general.log&#39;</span>;
+</span></span><span style="display:flex;"><span>mysql<span style="color:#f92672">&gt;</span> <span style="color:#66d9ef">SHOW</span> VARIABLES <span style="color:#66d9ef">LIKE</span> <span style="color:#e6db74">&#39;general_log%&#39;</span>;
+</span></span></code></pre></div><p><img src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/ae6543012fb7458e8d61c147a9b80d8d~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgRnJlZUN1bHR1cmVCb3k=:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMjY2NDg3MTkxMzM1NTQ2MyJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1746068975&amp;x-orig-sign=Iz2guAeuwz6%2BVT3xgPM5WuwAKfc%3D" alt="开启日志功能"></p>
+<p>这些命令将开启通用查询日志并将其输出到文件 <code>/var/lib/mysql/general.log</code>。</p>
+<h2 id="查看-mysql-日志">查看 MySQL 日志</h2>
+<p>执行以下命令查看 MySQL 的查询日志：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>tail -f /var/lib/mysql/general.log
+</span></span></code></pre></div><h1 id="观测-sql-注入实验">观测 SQL 注入实验</h1>
+<h2 id="使用-sqlmap-进行-sql-注入测试">使用 sqlmap 进行 SQL 注入测试</h2>
+<p>最后，使用 <code>sqlmap</code> 工具进行 SQL 注入测试，获取数据库中的数据。执行以下命令：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>sqlmap -u http://localhost/Less-1?id<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> --dump --batch
+</span></span></code></pre></div><p>成功执行后，你将看到数据库中被泄露的数据：</p>
+<p><img src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/8b0d77eabeae4ba8be0a798f7cc11524~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgRnJlZUN1bHR1cmVCb3k=:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMjY2NDg3MTkxMzM1NTQ2MyJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1746068975&amp;x-orig-sign=RqpjVEYtDSNbgTlMqxCJ5PFJIpA%3D" alt="sqlmap 注入"></p>
+<p>通过 Apache 和 MySQL 日志，你可以清楚地观察到 SQL 注入攻击如何通过 <code>id</code> 参数注入并执行 SQL 查询：</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-shell" data-lang="shell"><span style="display:flex;"><span>tail -f /var/log/apache2/access.log
+</span></span><span style="display:flex;"><span>tail -f /var/lib/mysql/general.log
+</span></span></code></pre></div><p><img src="https://p0-xtjj-private.juejin.cn/tos-cn-i-73owjymdk6/4890304691b74a77b56449e27367aaeb~tplv-73owjymdk6-jj-mark-v1:0:0:0:0:5o6Y6YeR5oqA5pyv56S-5Yy6IEAgRnJlZUN1bHR1cmVCb3k=:q75.awebp?policy=eyJ2bSI6MywidWlkIjoiMjY2NDg3MTkxMzM1NTQ2MyJ9&amp;rk3s=f64ab15b&amp;x-orig-authkey=f32326d3454f2ac7e96d3d06cdbb035152127018&amp;x-orig-expires=1746068975&amp;x-orig-sign=Y0Y9zCg24axJGTGmMYeySZtks5E%3D" alt="sqlmap 测试结果"></p>
+
+</content>
+<p>
+  
+  <a href="http://localhost:1313/tags/post/">#Post</a>
+  
+</p>
+
+  </main>
+  <footer>Made with <a href="https://github.com/janraasch/hugo-bearblog/">Hugo ʕ•ᴥ•ʔ Bear</a>
+</footer>
+
+    
+</body>
+
+</html>
