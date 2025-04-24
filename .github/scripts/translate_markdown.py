@@ -43,7 +43,7 @@ def translate_text(client, text, max_retries=3):
                     }
                 ],
                 temperature=0.3,
-                max_tokens=4000  # Grok模型支持更大的token数
+                max_tokens=4000
             )
             return response.choices[0].message.content
             
@@ -56,14 +56,10 @@ def translate_text(client, text, max_retries=3):
 
 def process_front_matter(front_matter):
     """处理Front Matter中的多语言字段"""
-    # 示例：在front matter中添加语言标记
     if front_matter:
-        if 'lang: zh' in front_matter:
-            front_matter = front_matter.replace('lang: zh', 'lang: en')
-        elif 'language: zh' in front_matter:
-            front_matter = front_matter.replace('language: zh', 'language: en')
-        elif 'language: zh-CN' in front_matter:
-            front_matter = front_matter.replace('language: zh-CN', 'language: en-US')
+        front_matter = front_matter.replace('lang: zh', 'lang: en')
+        front_matter = front_matter.replace('language: zh', 'language: en')
+        front_matter = front_matter.replace('language: zh-CN', 'language: en-US')
     return front_matter
 
 def split_front_matter(content):
@@ -78,58 +74,42 @@ def split_front_matter(content):
 def process_markdown(file_path):
     """处理单个Markdown文件"""
     try:
-        # 规范化文件路径
         file_path = os.path.normpath(file_path)
-        print(f"\n🔍 开始处理: {file_path}")
+        print(f"\n🔍 开始处理: {repr(file_path)}")
         
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"文件不存在: {file_path}")
         
-        # 检查是否已翻译文件
         if file_path.endswith('_en.md'):
             print("⏩ 跳过已翻译文件")
             return None
         
-        # 生成翻译文件名
         base, ext = os.path.splitext(file_path)
         translated_path = f"{base}_en{ext}"
         
-        # 检查是否需要更新翻译
         if os.path.exists(translated_path):
-            src_mtime = os.path.getmtime(file_path)
-            dst_mtime = os.path.getmtime(translated_path)
-            if dst_mtime >= src_mtime:
+            if os.path.getmtime(translated_path) >= os.path.getmtime(file_path):
                 print("✅ 翻译已是最新")
                 return None
 
-        # 初始化客户端
         client = init_client()
         
-        # 读取文件内容
         print("📖 读取文件内容...")
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
-        # 分割Front Matter和内容
         front_matter, content_body = split_front_matter(content)
-        
-        # 处理Front Matter
         processed_front_matter = process_front_matter(front_matter)
         
-        # 翻译内容主体
         print("🌐 开始翻译内容...")
         start_time = time.time()
         translated_body = translate_text(client, content_body)
-        elapsed = time.time() - start_time
-        print(f"🔄 翻译完成 (耗时: {elapsed:.2f}s)")
+        print(f"🔄 翻译完成 (耗时: {time.time() - start_time:.2f}s)")
         
-        # 组合翻译结果
         translated_content = (processed_front_matter + translated_body) if processed_front_matter else translated_body
         
-        # 确保目录存在
         os.makedirs(os.path.dirname(translated_path), exist_ok=True)
         
-        # 保存翻译结果
         print("💾 保存翻译文件...")
         with open(translated_path, 'w', encoding='utf-8') as f:
             f.write(translated_content)
@@ -149,9 +129,10 @@ def main():
     file_path = sys.argv[1]
     try:
         result = process_markdown(file_path)
-        if result:
-            print(f"::set-output name=translated_file::{result}")
-    except Exception as e:
+        if result and 'GITHUB_OUTPUT' in os.environ:
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                print(f"translated_file={result}", file=fh)
+    except Exception:
         sys.exit(1)
 
 if __name__ == "__main__":
