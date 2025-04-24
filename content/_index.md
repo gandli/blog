@@ -1,28 +1,29 @@
 +++
-# This title is used as the og:title on Hugo's internal
-# opengraph structured data template on the home page.
-# See https://ogp.me/ and https://gohugo.io/templates/internal#open-graph.
-title = "Hugo ʕ•ᴥ•ʔ Bear"
+# 博客标题
+title = "我的个人博客"
 +++
 
-# A match made in heaven
+# 欢迎来到我的数字空间
 
-There is a website obesity crisis. Bloated websites full of scripts, ads, and trackers are slowing your readers down every time they try to read your well-crafted content.
+这里是我分享技术思考、生活感悟和学习笔记的地方。作为一个热爱编程和写作的人，我希望能通过这个博客与大家交流心得。
 
-Hugo Bear Blog is all you need to build a fantastic and optimized site or blog. It works perfectly on **any** viewing device. All you need to focus on is writing good content.
+## 关于我
 
-[Go to the original bear blog](https://bearblog.dev/).
+- 全栈开发者
+- 开源爱好者
+- 终身学习者
+
+## 博客特色
+
+- 简洁高效的设计
+- 专注内容质量
+- 无广告无追踪
+- 极速加载体验
+
+## 最新文章
+
+[查看所有文章](/posts)
 
 ---
 
-What happens when you combine the worlds' fastest, most lightweight static site generator with a design theme built to provide you with free, no-nonsense, super-fast blogging capabilities?
-
-**Use this theme, and find out!**
-
-Made with 💟 by [Jan Raasch](https://www.janraasch.com).
-
----
-
-Simply publish content online, grow an audience, and keep your pages tiny, fast, and **optimized for search engines**.
-
-Each page is ~5kb, and you can **host your blog yourself**.
+感谢您的访问！如果您有任何建议或想法，欢迎通过[联系方式](/contact)与我交流。
