@@ -14,7 +14,7 @@ def translate_text(text):
     )
     
     response = client.chat.completions.create(
-        model="gpt-4",
+        model="grok-3-beta",
         messages=[
             {
                 "role": "system",
