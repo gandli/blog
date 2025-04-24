@@ -1,0 +1,4 @@
+baseURL = 'https://blog.chenxuexin.com/'
+languageCode = 'en-us'
+title = 'My New Hugo Site'
+theme = 'hugo-bearblog'
