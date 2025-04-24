@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       file_path:
-        description: '可选 - 指定要翻译的文件路径'
+        description: '可选 - 指定要翻译的文件路径 (e.g. content/my_post.md)'
         required: false
         default: ''
 
