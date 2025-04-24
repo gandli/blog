@@ -81,12 +81,20 @@ jobs:
           for file in "${files[@]}"; do
             base="${file%.*}"
             if [[ ! -f "${base}_en.md" ]]; then
-              untranslated_files+=("$file")
+              # 对文件路径进行JSON转义
+              escaped_file=$(printf '%s' "$file" | jq -Rs . | sed 's/\\n//g')
+              untranslated_files+=("$escaped_file")
             fi
           done
           
-          # 将文件列表转换为JSON格式输出
-          echo "files_to_translate=$(find content -name "*.md" ! -name "*_en.md" -printf '"%p"\n' | jq -s .)" >> $GITHUB_OUTPUT
+          # 将文件列表转换为JSON数组格式输出
+          if [ ${#untranslated_files[@]} -eq 0 ]; then
+            echo "files_to_translate=[]" >> $GITHUB_OUTPUT
+          else
+            # 使用jq构建正确的JSON数组
+            json_array=$(printf '%s\n' "${untranslated_files[@]}" | jq -s .)
+            echo "files_to_translate=${json_array}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Translate Markdown files
         if: steps.untranslated-files.outputs.files_to_translate != '[]'
