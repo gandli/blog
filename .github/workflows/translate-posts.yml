@@ -5,7 +5,12 @@ on:
     paths:
       - 'posts/**/*.md'
       - '!posts/**/*_en.md'  # 排除已翻译的文件
-
+  workflow_dispatch:  # 添加手动触发
+    inputs:
+      file_path:
+        description: 'Optional - Specific file path to translate (e.g. posts/my_post.md)'
+        required: false
+        default: ''
 jobs:
   translate:
     runs-on: ubuntu-latest
