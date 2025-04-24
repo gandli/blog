@@ -38,6 +38,6 @@ jobs:
 
       - name: Translate Markdown files
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
           python .github/scripts/translate_markdown.py "${{ steps.changed-files.outputs.all_changed_files }}"
