@@ -1,86 +1,70 @@
 import os
 import sys
 import re
+import time
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
-def translate_text(text):
-    """使用 OpenAI API 翻译文本"""
-    client = OpenAI(
-      api_key=os.getenv('XAI_API_KEY'),
-      base_url="https://api.x.ai/v1",
-    )
-    
-    response = client.chat.completions.create(
-        model="grok-3-beta",
-        messages=[
-            {
-                "role": "system",
-                "content": "你是一位专业的翻译专家，擅长将中文技术博客翻译为自然流畅的英文。请保持Markdown格式不变，只翻译文本内容。特别注意保留代码块、链接和特殊标记不变。"
-            },
-            {
-                "role": "user",
-                "content": text
-            }
-        ],
-        temperature=0.3,
-        max_tokens=2000
-    )
-    
-    return response.choices[0].message.content
+class TranslationError(Exception):
+    """自定义翻译异常类"""
+    pass
 
-def process_markdown(file_path):
-    """处理单个Markdown文件"""
-    try:
-        # 规范化文件路径
-        file_path = os.path.abspath(file_path)
-        print(f"🛠️ 正在处理文件: {file_path}")
-        
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"文件不存在: {file_path}")
-        
-        # 跳过已翻译的文件
-        if file_path.endswith('_en.md'):
-            print(f"⏩ 跳过已翻译文件: {file_path}")
-            return
-        
-        # 生成翻译后的文件名
-        base, ext = os.path.splitext(file_path)
-        translated_path = f"{base}_en{ext}"
-        
-        # 检查是否需要翻译
-        if os.path.exists(translated_path) and \
-           os.path.getmtime(translated_path) >= os.path.getmtime(file_path):
-            print(f"✅ 翻译已是最新: {file_path}")
-            return
-        
-        print(f"📖 读取文件内容: {file_path}")
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
-        
-        # 分割Front Matter和内容
-        front_matter, content_body = split_front_matter(content)
-        
-        print("🌐 开始翻译内容...")
-        translated_body = translate_text(content_body)
-        
-        # 组合翻译结果
-        translated_content = front_matter + translated_body if front_matter else translated_body
-        
-        # 确保目录存在
-        os.makedirs(os.path.dirname(translated_path), exist_ok=True)
-        
-        print(f"💾 保存翻译结果到: {translated_path}")
-        with open(translated_path, 'w', encoding='utf-8') as file:
-            file.write(translated_content)
+def init_client():
+    """初始化XAI客户端"""
+    api_key = os.getenv('XAI_API_KEY')
+    if not api_key:
+        raise ValueError("XAI_API_KEY 未在环境变量中设置")
+    
+    return OpenAI(
+        api_key=api_key,
+        base_url="https://api.x.ai/v1",
+    )
+
+def translate_text(client, text, max_retries=3):
+    """使用XAI Grok API翻译文本"""
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model="grok-3-beta",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """你是一位专业的翻译专家，请将以下中文技术内容翻译为英文。要求：
+1. 保持所有Markdown格式、代码块、链接和特殊标记不变
+2. 技术术语保持准确
+3. 语言自然流畅符合英文表达习惯
+4. 保留所有换行和空格格式"""
+                    },
+                    {
+                        "role": "user",
+                        "content": text
+                    }
+                ],
+                temperature=0.3,
+                max_tokens=4000  # Grok模型支持更大的token数
+            )
+            return response.choices[0].message.content
             
-        print(f"🎉 成功完成翻译: {file_path} → {translated_path}")
-        
-    except Exception as e:
-        print(f"❌ 处理文件 {file_path} 时出错: {str(e)}", file=sys.stderr)
-        raise
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise TranslationError(f"翻译失败，已达最大重试次数: {str(e)}")
+            wait_time = (attempt + 1) * 5
+            print(f"⚠️ 翻译出错，{wait_time}秒后重试... (尝试 {attempt + 1}/{max_retries})")
+            time.sleep(wait_time)
+
+def process_front_matter(front_matter):
+    """处理Front Matter中的多语言字段"""
+    # 示例：在front matter中添加语言标记
+    if front_matter:
+        if 'lang: zh' in front_matter:
+            front_matter = front_matter.replace('lang: zh', 'lang: en')
+        elif 'language: zh' in front_matter:
+            front_matter = front_matter.replace('language: zh', 'language: en')
+        elif 'language: zh-CN' in front_matter:
+            front_matter = front_matter.replace('language: zh-CN', 'language: en-US')
+    return front_matter
 
 def split_front_matter(content):
     """分割Front Matter和内容主体"""
@@ -91,13 +75,84 @@ def split_front_matter(content):
         return match.group(0), content[match.end():]
     return "", content
 
+def process_markdown(file_path):
+    """处理单个Markdown文件"""
+    try:
+        # 规范化文件路径
+        file_path = os.path.normpath(file_path)
+        print(f"\n🔍 开始处理: {file_path}")
+        
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"文件不存在: {file_path}")
+        
+        # 检查是否已翻译文件
+        if file_path.endswith('_en.md'):
+            print("⏩ 跳过已翻译文件")
+            return None
+        
+        # 生成翻译文件名
+        base, ext = os.path.splitext(file_path)
+        translated_path = f"{base}_en{ext}"
+        
+        # 检查是否需要更新翻译
+        if os.path.exists(translated_path):
+            src_mtime = os.path.getmtime(file_path)
+            dst_mtime = os.path.getmtime(translated_path)
+            if dst_mtime >= src_mtime:
+                print("✅ 翻译已是最新")
+                return None
+
+        # 初始化客户端
+        client = init_client()
+        
+        # 读取文件内容
+        print("📖 读取文件内容...")
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 分割Front Matter和内容
+        front_matter, content_body = split_front_matter(content)
+        
+        # 处理Front Matter
+        processed_front_matter = process_front_matter(front_matter)
+        
+        # 翻译内容主体
+        print("🌐 开始翻译内容...")
+        start_time = time.time()
+        translated_body = translate_text(client, content_body)
+        elapsed = time.time() - start_time
+        print(f"🔄 翻译完成 (耗时: {elapsed:.2f}s)")
+        
+        # 组合翻译结果
+        translated_content = (processed_front_matter + translated_body) if processed_front_matter else translated_body
+        
+        # 确保目录存在
+        os.makedirs(os.path.dirname(translated_path), exist_ok=True)
+        
+        # 保存翻译结果
+        print("💾 保存翻译文件...")
+        with open(translated_path, 'w', encoding='utf-8') as f:
+            f.write(translated_content)
+        
+        print(f"🎉 翻译完成: {translated_path}")
+        return translated_path
+        
+    except Exception as e:
+        print(f"\n❌ 处理失败: {str(e)}", file=sys.stderr)
+        raise
+
 def main():
     if len(sys.argv) < 2:
         print("❌ 错误: 请提供要翻译的文件路径", file=sys.stderr)
         sys.exit(1)
         
     file_path = sys.argv[1]
-    process_markdown(file_path)
+    try:
+        result = process_markdown(file_path)
+        if result:
+            print(f"::set-output name=translated_file::{result}")
+    except Exception as e:
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
