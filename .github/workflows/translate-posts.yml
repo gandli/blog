@@ -92,10 +92,19 @@ jobs:
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          # 将文件列表转换为数组并正确处理带空格的文件名
-          IFS=$'\n' read -d '' -r -a files <<< "$(echo "${{ steps.untranslated-files.outputs.files_to_translate }}" | tr ' ' '\n')"
+          # 使用数组存储文件列表，正确处理带空格的文件名
+          files=()
+          while IFS= read -r -d '' file; do
+            files+=("$file")
+          done < <(find content -name "*.md" ! -name "*_en.md" -print0)
+          
+          # 检查每个文件是否有对应的翻译版本
           for file in "${files[@]}"; do
-            if [[ -n "$file" ]]; then
+            base="${file%.*}"
+            if [[ ! -f "${base}_en.md" ]]; then
+              echo "🔍 发现未翻译文件: $file"
               python .github/scripts/translate_markdown.py "$file"
+            else
+              echo "⏩ 跳过已翻译文件: $file"
             fi
           done
