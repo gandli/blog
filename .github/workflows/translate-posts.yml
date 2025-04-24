@@ -1,4 +1,4 @@
-name: Markdown文章自动翻译
+name: Translate Markdown Posts
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       file_path:
-        description: '可选 - 指定要翻译的文件路径 (e.g. content/my_post.md)'
+        description: 'Optional - Specific file path to translate'
         required: false
         default: ''
 
@@ -20,39 +20,35 @@ jobs:
     outputs:
       has_untranslated: ${{ steps.check-files.outputs.has_untranslated }}
     steps:
-      - name: 检出代码库
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 查找未翻译文件
+      - name: Find untranslated files
         id: check-files
         run: |
-          # 创建临时文件
+          # 使用临时文件存储结果
           UNTRANSLATED_FILES=$(mktemp)
           
-          echo "开始扫描需要翻译的文件..."
+          # 查找未翻译文件
           while IFS= read -r -d '' file; do
             base="${file%.*}"
             if [[ ! -f "${base}_en.md" ]]; then
               echo "$file" >> "$UNTRANSLATED_FILES"
-              echo "发现待翻译文件: $file"
             fi
           done < <(find content -name "*.md" ! -name "*_en.md" -print0)
 
-          # 设置输出结果
+          # 设置输出变量
           if [[ -s "$UNTRANSLATED_FILES" ]]; then
-            echo "存在未翻译文件: 是"
             echo "has_untranslated=true" >> "$GITHUB_OUTPUT"
             echo "untranslated_files<<EOF" >> "$GITHUB_OUTPUT"
             cat "$UNTRANSLATED_FILES" >> "$GITHUB_OUTPUT"
             echo "EOF" >> "$GITHUB_OUTPUT"
           else
-            echo "存在未翻译文件: 否"
             echo "has_untranslated=false" >> "$GITHUB_OUTPUT"
           fi
           rm -f "$UNTRANSLATED_FILES"
-          echo "文件扫描完成"
 
   translate:
     needs: check-untranslated
@@ -61,61 +57,57 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 检出代码库
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 设置Python环境
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: 安装依赖
+      - name: Install dependencies
         run: |
-          echo "正在安装Python依赖..."
           python -m pip install --upgrade pip
           pip install openai python-dotenv
-          echo "依赖安装完成"
 
-      - name: 执行翻译
+      - name: Translate files
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          echo "开始翻译流程..."
+          # 读取未翻译文件列表
           while IFS= read -r file; do
-            echo "🔄 正在处理: $file"
+            echo "🔍 Processing: $file"
             if python .github/scripts/translate_markdown.py "$file"; then
-              echo "✅ 翻译成功: $file"
+              echo "✅ Translated: $file"
               echo "${file%.*}_en.md" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "❌ 翻译失败: $file" >&2
+              echo "❌ Failed to translate: $file" >&2
             fi
           done <<< "${{ needs.check-untranslated.outputs.untranslated_files }}"
-          echo "所有文件处理完成"
 
-      - name: 提交翻译结果
+      - name: Commit and push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "准备提交翻译结果..."
+          # 配置Git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
-          added_files=0
+          # 添加翻译文件
           while IFS= read -r file; do
             translated_file="${file%.*}_en.md"
             if [[ -f "$translated_file" ]]; then
               git add "$translated_file"
-              added_files=$((added_files+1))
-              echo "已暂存文件: $translated_file"
             fi
           done <<< "${{ needs.check-untranslated.outputs.untranslated_files }}"
           
+          # 提交变更
           if ! git diff --cached --quiet; then
-            git commit -m "自动翻译: 新增英文版本 [skip ci]"
+            git commit -m "Auto-translate: Add English versions [skip ci]"
             git push origin "HEAD:${{ github.ref_name }}"
-            echo "🎉 成功提交 $added_files 个翻译文件"
+            echo "🚀 Successfully pushed translations"
           else
-            echo "ℹ️ 没有检测到需要提交的变更"
+            echo "ℹ️ No translations to commit"
           fi
