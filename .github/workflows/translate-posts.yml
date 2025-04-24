@@ -74,8 +74,9 @@ jobs:
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          files=$(echo '${{ needs.prepare.outputs.files_to_translate }}' | jq -r '.[]')
-          for file in $files; do
+          readarray -t files < <(echo '${{ needs.prepare.outputs.files_to_translate }}' | jq -r '.[]')
+
+          for file in "${files[@]}"; do
             echo "🔍 Translating $file"
             python .github/scripts/translate_markdown.py "$file"
           done
