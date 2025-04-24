@@ -3,16 +3,51 @@ name: Translate Markdown Posts
 on:
   push:
     paths:
-      - 'content/blog/*.md'
-      - '!content/blog/*_en.md'  # 排除已翻译的文件
-  workflow_dispatch:  # 添加手动触发
+      - 'content/**/*.md'
+      - '!content/**/*_en.md'  # 排除已翻译的文件
+  workflow_dispatch:  # 手动触发
     inputs:
       file_path:
         description: 'Optional - Specific file path to translate (e.g. content/my_post.md)'
         required: false
         default: ''
+
 jobs:
+  check-untranslated:
+    runs-on: ubuntu-latest
+    outputs:
+      has_untranslated: ${{ steps.check-files.outputs.has_untranslated }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find untranslated files
+        id: check-files
+        run: |
+          # 查找所有未翻译的Markdown文件
+          files=$(find content -name "*.md" ! -name "*_en.md")
+          
+          # 检查每个文件是否有对应的翻译版本
+          untranslated_files=()
+          for file in $files; do
+            base="${file%.*}"
+            if [[ ! -f "${base}_en.md" ]]; then
+              untranslated_files+=("$file")
+            fi
+          done
+          
+          # 设置输出变量
+          if [ ${#untranslated_files[@]} -gt 0 ]; then
+            echo "Found untranslated files: ${untranslated_files[@]}"
+            echo "has_untranslated=true" >> $GITHUB_OUTPUT
+          else
+            echo "No untranslated files found"
+            echo "has_untranslated=false" >> $GITHUB_OUTPUT
+          fi
+
   translate:
+    needs: check-untranslated
+    if: needs.check-untranslated.outputs.has_untranslated == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -33,11 +68,28 @@ jobs:
         uses: tj-actions/changed-files@v42
         with:
           files: |
-            content/blog/*.md
-            !content/blog/*_en.md
+            content/**/*.md
+            !content/**/*_en.md
+
+      - name: Get untranslated files
+        id: untranslated-files
+        run: |
+          # 查找所有未翻译的Markdown文件
+          files=$(find content -name "*.md" ! -name "*_en.md")
+          
+          # 筛选出没有对应翻译版本的文件
+          untranslated_files=()
+          for file in $files; do
+            base="${file%.*}"
+            if [[ ! -f "${base}_en.md" ]]; then
+              untranslated_files+=("$file")
+            fi
+          done
+          
+          echo "files_to_translate=${untranslated_files[@]}" >> $GITHUB_OUTPUT
 
       - name: Translate Markdown files
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          python .github/scripts/translate_markdown.py "${{ steps.changed-files.outputs.all_changed_files }}"
+          python .github/scripts/translate_markdown.py "${{ steps.untranslated-files.outputs.files_to_translate }}"
