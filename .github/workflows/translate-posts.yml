@@ -92,4 +92,10 @@ jobs:
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          python .github/scripts/translate_markdown.py "${{ steps.untranslated-files.outputs.files_to_translate }}"
+          # 将文件列表转换为数组并正确处理带空格的文件名
+          IFS=$'\n' read -d '' -r -a files <<< "$(echo "${{ steps.untranslated-files.outputs.files_to_translate }}" | tr ' ' '\n')"
+          for file in "${files[@]}"; do
+            if [[ -n "$file" ]]; then
+              python .github/scripts/translate_markdown.py "$file"
+            fi
+          done
