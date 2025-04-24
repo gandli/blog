@@ -6,10 +6,11 @@ on:
       - '**/*.md'             # 监控所有目录下的 .md 文件
       - '!**/_*.md'           # 排除所有以 _ 开头的文件（如 _draft.md）
       - '!**/*_en.md'         # 排除所有已存在的翻译文件（*_en.md）
+      - '!**/default.md'
   workflow_dispatch:
     inputs:
       file_path:
-        description: '可选 - 指定要翻译的文件路径（如 docs/示例.md）'
+        description: '可选 - 指定要翻译的文件路径（如 content/blog/示例.md）'
         required: false
         default: ''
 
