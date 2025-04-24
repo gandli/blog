@@ -15,6 +15,8 @@ on:
 jobs:
   check-untranslated:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       has_untranslated: ${{ steps.check-files.outputs.has_untranslated }}
     steps:
