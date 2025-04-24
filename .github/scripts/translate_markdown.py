@@ -34,15 +34,12 @@ def translate_text(text):
 def process_markdown(file_path):
     """处理单个Markdown文件"""
     try:
-        # 检查文件是否存在
-        if not os.path.exists(file_path):
-            print(f"⚠️ 文件不存在: {file_path}")
-            return
-
-        print(f"🔍 正在处理文件: {file_path}")
+        # 规范化文件路径
+        file_path = os.path.abspath(file_path)
+        print(f"🛠️ 正在处理文件: {file_path}")
         
-        with open(file_path, 'r', encoding='utf-8') as file:
-            content = file.read()
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"文件不存在: {file_path}")
         
         # 跳过已翻译的文件
         if file_path.endswith('_en.md'):
@@ -53,51 +50,52 @@ def process_markdown(file_path):
         base, ext = os.path.splitext(file_path)
         translated_path = f"{base}_en{ext}"
         
-        # 如果翻译文件已存在且比源文件新，则跳过
-        if os.path.exists(translated_path) and os.path.getmtime(translated_path) >= os.path.getmtime(file_path):
+        # 检查是否需要翻译
+        if os.path.exists(translated_path) and \
+           os.path.getmtime(translated_path) >= os.path.getmtime(file_path):
             print(f"✅ 翻译已是最新: {file_path}")
             return
         
-        # 分割文件内容为前后两部分（Front Matter 和内容）
+        print(f"📖 读取文件内容: {file_path}")
+        with open(file_path, 'r', encoding='utf-8') as file:
+            content = file.read()
+        
+        # 分割Front Matter和内容
         front_matter, content_body = split_front_matter(content)
         
-        # 只翻译内容部分
-        print(f"🌐 正在翻译: {file_path}")
+        print("🌐 开始翻译内容...")
         translated_body = translate_text(content_body)
         
-        # 重新组合翻译后的内容
+        # 组合翻译结果
         translated_content = front_matter + translated_body if front_matter else translated_body
         
         # 确保目录存在
         os.makedirs(os.path.dirname(translated_path), exist_ok=True)
         
-        # 写入翻译后的文件
+        print(f"💾 保存翻译结果到: {translated_path}")
         with open(translated_path, 'w', encoding='utf-8') as file:
             file.write(translated_content)
-        
-        print(f"🎉 成功翻译并保存到: {translated_path}")
+            
+        print(f"🎉 成功完成翻译: {file_path} → {translated_path}")
         
     except Exception as e:
-        print(f"❌ 处理文件 {file_path} 时出错: {str(e)}")
+        print(f"❌ 处理文件 {file_path} 时出错: {str(e)}", file=sys.stderr)
         raise
 
 def split_front_matter(content):
-    """分割 Front Matter 和内容主体"""
+    """分割Front Matter和内容主体"""
     front_matter_pattern = r'^---\n(.*?\n)---\n'
     match = re.match(front_matter_pattern, content, re.DOTALL)
     
     if match:
-        front_matter = match.group(0)
-        content_body = content[match.end():]
-        return front_matter, content_body
+        return match.group(0), content[match.end():]
     return "", content
 
 def main():
     if len(sys.argv) < 2:
-        print("❌ 没有提供要处理的文件")
-        return
-    
-    # 获取要处理的文件路径
+        print("❌ 错误: 请提供要翻译的文件路径", file=sys.stderr)
+        sys.exit(1)
+        
     file_path = sys.argv[1]
     process_markdown(file_path)
 
