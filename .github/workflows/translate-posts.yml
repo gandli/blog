@@ -4,11 +4,11 @@ on:
   push:
     paths:
       - 'content/**/*.md'
-      - '!content/**/*_en.md'
-  workflow_dispatch:
+      - '!content/**/*_en.md'  # 排除已翻译的文件
+  workflow_dispatch:  # 手动触发
     inputs:
       file_path:
-        description: 'Optional - Specific file path to translate'
+        description: 'Optional - Specific file path to translate (e.g. content/my_post.md)'
         required: false
         default: ''
 
@@ -22,45 +22,37 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find untranslated files
         id: check-files
         run: |
-          # 使用临时文件存储结果
-          UNTRANSLATED_FILES=$(mktemp)
+          # 查找所有未翻译的Markdown文件
+          files=$(find content -name "*.md" ! -name "*_en.md")
           
-          # 查找未翻译文件
-          while IFS= read -r -d '' file; do
+          # 检查每个文件是否有对应的翻译版本
+          untranslated_files=()
+          for file in $files; do
             base="${file%.*}"
             if [[ ! -f "${base}_en.md" ]]; then
-              echo "$file" >> "$UNTRANSLATED_FILES"
+              untranslated_files+=("$file")
             fi
-          done < <(find content -name "*.md" ! -name "*_en.md" -print0)
-
+          done
+          
           # 设置输出变量
-          if [[ -s "$UNTRANSLATED_FILES" ]]; then
-            echo "has_untranslated=true" >> "$GITHUB_OUTPUT"
-            echo "untranslated_files<<EOF" >> "$GITHUB_OUTPUT"
-            cat "$UNTRANSLATED_FILES" >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
+          if [ ${#untranslated_files[@]} -gt 0 ]; then
+            echo "Found untranslated files: ${untranslated_files[@]}"
+            echo "has_untranslated=true" >> $GITHUB_OUTPUT
           else
-            echo "has_untranslated=false" >> "$GITHUB_OUTPUT"
+            echo "No untranslated files found"
+            echo "has_untranslated=false" >> $GITHUB_OUTPUT
           fi
-          rm -f "$UNTRANSLATED_FILES"
-
   translate:
     needs: check-untranslated
     if: needs.check-untranslated.outputs.has_untranslated == 'true'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -71,43 +63,68 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install openai python-dotenv
-
-      - name: Translate files
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v42
+        with:
+          files: |
+            content/**/*.md
+            !content/**/*_en.md
+      - name: Get untranslated files
+        id: untranslated-files
+        run: |
+          # 查找所有未翻译的Markdown文件
+          files=$(find content -name "*.md" ! -name "*_en.md")
+          
+          # 筛选出没有对应翻译版本的文件
+          untranslated_files=()
+          for file in $files; do
+            base="${file%.*}"
+            if [[ ! -f "${base}_en.md" ]]; then
+              untranslated_files+=("$file")
+            fi
+          done
+          
+          echo "files_to_translate=${untranslated_files[@]}" >> $GITHUB_OUTPUT
+      - name: Translate Markdown files
         env:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
         run: |
-          # 读取未翻译文件列表
-          while IFS= read -r file; do
-            echo "🔍 Processing: $file"
-            if python .github/scripts/translate_markdown.py "$file"; then
-              echo "✅ Translated: $file"
-              echo "${file%.*}_en.md" >> "$GITHUB_STEP_SUMMARY"
+          # 使用数组存储文件列表，正确处理带空格的文件名
+          files=()
+          while IFS= read -r -d '' file; do
+            files+=("$file")
+          done < <(find content -name "*.md" ! -name "*_en.md" -print0)
+          
+          # 检查每个文件是否有对应的翻译版本
+          for file in "${files[@]}"; do
+            base="${file%.*}"
+            if [[ ! -f "${base}_en.md" ]]; then
+              echo "🔍 发现未翻译文件: $file"
+              python .github/scripts/translate_markdown.py "$file"
             else
-              echo "❌ Failed to translate: $file" >&2
+              echo "⏩ 跳过已翻译文件: $file"
             fi
-          done <<< "${{ needs.check-untranslated.outputs.untranslated_files }}"
-
-      - name: Commit and push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          done
+          
+      - name: Commit and push translations
+        if: steps.untranslated-files.outputs.files_to_translate != '[]'
         run: |
-          # 配置Git
+          # 配置Git用户
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
-          # 添加翻译文件
-          while IFS= read -r file; do
-            translated_file="${file%.*}_en.md"
-            if [[ -f "$translated_file" ]]; then
-              git add "$translated_file"
-            fi
-          done <<< "${{ needs.check-untranslated.outputs.untranslated_files }}"
+          # 添加所有翻译文件
+          git add content/**/*_en.md
           
-          # 提交变更
-          if ! git diff --cached --quiet; then
-            git commit -m "Auto-translate: Add English versions [skip ci]"
-            git push origin "HEAD:${{ github.ref_name }}"
-            echo "🚀 Successfully pushed translations"
+          # 检查是否有变更需要提交
+          if git diff --cached --quiet; then
+            echo "没有需要提交的翻译文件"
           else
-            echo "ℹ️ No translations to commit"
+            # 提交变更
+            git commit -m "Auto-translate: Added English versions [skip ci]"
+            
+            # 推送变更
+            git push origin "HEAD:${{ github.ref_name }}"
+            echo "已成功提交并推送翻译文件"
           fi
